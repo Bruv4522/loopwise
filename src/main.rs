@@ -1,5 +1,6 @@
 mod user;
 mod db;
+mod state;
 
 use axum::{Router, routing::get};
 
@@ -11,14 +12,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .expect("DATABASE_URL must be set");
 
     let db = db::connect(&database_url).await.unwrap();
-
-    let result: i32 = sqlx::query_scalar("SELECT 1")
-        .fetch_one(&db)
-        .await?;
+    
+    let state = state::AppState { db };
 
     let app = Router::new()
         .merge(user::controller::router())
-        .route("/test", get(move || async move { result.to_string() }));
+        .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
 
